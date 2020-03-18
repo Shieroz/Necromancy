@@ -12,7 +12,6 @@ public class LegController : MonoBehaviour
     public Transform hip;
 
     public float separateDistance = 0.8f;
-    public float moveDuration = 0.5f;
     public float stepOvershootFraction;
     public Vector3 currentPosition;
     public bool isMoving;
@@ -23,8 +22,7 @@ public class LegController : MonoBehaviour
         isMoving = false;
     }
 
-    // Update is called once per frame
-    public void TryMove()
+    public void TryWalk(float moveDuration)
     {
         if (isMoving) return;
 
@@ -36,20 +34,20 @@ public class LegController : MonoBehaviour
             {
                 if ((IKTarget.position - forwardTarget.position).magnitude > separateDistance)
                 {
-                    StartCoroutine(moveToTarget(forwardTarget));
+                    StartCoroutine(moveToTarget(forwardTarget, moveDuration));
                 }
             }
             else
             {
                 if ((IKTarget.position - backwardTarget.position).magnitude > separateDistance)
                 {
-                    StartCoroutine(moveToTarget(backwardTarget));
+                    StartCoroutine(moveToTarget(backwardTarget, moveDuration));
                 }
             }
         }
         else
         {
-            StartCoroutine(moveToTarget(restTarget));
+            StartCoroutine(moveToTarget(restTarget, moveDuration));
         }
     }
 
@@ -59,7 +57,7 @@ public class LegController : MonoBehaviour
         lastPos = hip.position;
     }
 
-    IEnumerator moveToTarget(Transform target)
+    IEnumerator moveToTarget(Transform target, float moveDuration)
     {
         isMoving = true;
 
@@ -78,9 +76,11 @@ public class LegController : MonoBehaviour
         // by projecting it on the world XZ plane.
         overshootVector = Vector3.ProjectOnPlane(overshootVector, Vector3.up);
 
-        Vector3 randomeOffset = hip.right * Random.Range(-0.2f, 0.2f) + hip.forward * Random.Range(-0.1f, 0.1f); //NOTE: Add randomness for spice
+        Vector3 randomeOffset = hip.right * Random.Range(-0.05f, 0.05f) + hip.forward * Random.Range(-0.05f, 0.05f); //NOTE: Add randomness for spice
 
-        Vector3 endPoint = target.position + overshootVector + randomeOffset;
+        Vector3 endPoint = target.position + overshootVector;
+        if (target.name != "RestTarget")
+            endPoint += randomeOffset;
         currentPosition = endPoint;
 
         // We want to pass through the center point
@@ -93,14 +93,11 @@ public class LegController : MonoBehaviour
 
         float refHipHeight = hip.position.y;
 
-        //NOTE: Add randomness for spice
-        float randomMoveDuration = Random.Range(moveDuration - 0.1f, moveDuration + 0.1f);
-
         do
         {
             // Add time since last frame to the time elapsed
             timeElapsed += Time.deltaTime;
-            normalizedTime = timeElapsed / randomMoveDuration;
+            normalizedTime = timeElapsed / moveDuration;
 
             // Quadratic bezier curve
             IKTarget.position =
@@ -112,12 +109,12 @@ public class LegController : MonoBehaviour
             IKTarget.rotation = Quaternion.Slerp(startRot, endRot, normalizedTime);
 
             //Move character up and down while walking
-            hip.position = new Vector3(hip.position.x, refHipHeight - (IKTarget.position.y - endPoint.y) * 0.4f, hip.position.z);
+            hip.position = new Vector3(hip.position.x, refHipHeight - (IKTarget.position.y - endPoint.y) * 0.25f, hip.position.z);
 
             // Wait for one frame
             yield return null;
         }
-        while (timeElapsed < randomMoveDuration);
+        while (timeElapsed < moveDuration);
 
         // Done moving
         isMoving = false;

@@ -7,8 +7,11 @@ public class RagdollAnimator : MonoBehaviour
     Component[] rigidbodies;
     public LegController leftLeg;
     public LegController rightLeg;
+    public SpineController spine;
 
     [SerializeField] bool ragdoll;
+
+    public float moveDuration = 0.5f;
     public bool Ragdoll
     {
         set
@@ -42,7 +45,7 @@ public class RagdollAnimator : MonoBehaviour
             // Try moving one leg
             do
             {
-                leftLeg.TryMove();
+                leftLeg.TryWalk(Random.Range(moveDuration - 0.1f, moveDuration + 0.1f));
                 yield return null;
 
                 // Stay in this loop while this leg is moving.
@@ -51,7 +54,7 @@ public class RagdollAnimator : MonoBehaviour
             // Do the same thing for the other leg
             do
             {
-                rightLeg.TryMove();
+                rightLeg.TryWalk(Random.Range(moveDuration - 0.1f, moveDuration + 0.1f));
                 yield return null;
             } while (rightLeg.isMoving);
         }
